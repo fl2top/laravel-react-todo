@@ -7,11 +7,13 @@ class TodoList extends React.Component {
 
         this.state = {
             newTaskValue: '',
-            tasksList: []
+            tasksList: [],
+            isNewTaskButtonDisabled: false,
         };
 
         this.updateNewTaskValue = this.updateNewTaskValue.bind(this);
         this.addNewTask = this.addNewTask.bind(this);
+        this.deleteTask = this.deleteTask.bind(this);
     }
 
     updateNewTaskValue(event) {
@@ -20,24 +22,43 @@ class TodoList extends React.Component {
 
     addNewTask(event) {
         event.preventDefault();
+        this.setState({isNewTaskButtonDisabled: true});
 
-        window.axios.post('/api/create', {'body': this.state.newTaskValue})
-        .then(response => {
-            if (response.status === 200 && response.data.body) {
-                alert('Record successfully created!');
-                this.setState({newTaskValue: ''});
-                document.getElementById('new-task-text-field').value = '';
+        window.axios.post('/api/tasks/create', {'body': this.state.newTaskValue})
+            .then(response => {
+                if (response.status === 200 && response.data.body) {
+                    this.setState({newTaskValue: ''});
+                    let taskList = this.state.tasksList;
+                    taskList.push(response.data);
+                    this.setState({tasksList: taskList});
+                }
+            })
+            .catch(error => {
+                if (error.response.data && error.response.data.errors && error.response.data.message) {
+                    alert(error.response.data.message + ' ' + error.response.data.errors.body.join(','))
+                }
+            })
+            .finally(() => {
+                this.setState({isNewTaskButtonDisabled: false});
+            });
+    }
 
-                let taskList = this.state.tasksList;
-                taskList.push(response.data);
-                this.setState({tasksList: taskList});
-            }
-        })
-        .catch(error => {
-            if (error.response.data && error.response.data.errors && error.response.data.message) {
-                alert(error.response.data.message + ' ' + error.response.data.errors.body.join(','))
-            }
-        });
+    deleteTask(taskId) {
+        window.axios.delete('/api/tasks/delete/' + taskId)
+            .then(response => {
+                if (response.status === 200 && response.data.id) {
+                    let filteredTasks = this.state.tasksList.filter(item => {
+                        return item.id !== response.data.id;
+                    });
+
+                    this.setState({tasksList: filteredTasks});
+                }
+            })
+            .catch(error => {
+                if (error.response.data && error.response.data.errors && error.response.data.message) {
+                    alert(error.response.data.message + ' ' + error.response.data.errors.body.join(','))
+                }
+            });
     }
 
     componentDidMount() {
@@ -45,7 +66,7 @@ class TodoList extends React.Component {
     }
 
     fetchAllTasks() {
-        window.axios.get('/api/all', ).then(res => {
+        window.axios.get('/api/tasks/all', ).then(res => {
             this.setState({tasksList: res.data});
         });
     }
@@ -56,18 +77,18 @@ class TodoList extends React.Component {
                 <div className="d-flex justify-content-center">
                     <form className="row" onSubmit={this.addNewTask}>
                         <div className="col-auto">
-                            <input type="text" className="form-control" onChange={this.updateNewTaskValue} id="new-task-text-field" placeholder="New task"/>
+                            <input type="text" className="form-control" onChange={this.updateNewTaskValue} value={this.state.newTaskValue} id="new-task-text-field" placeholder="New task"/>
                         </div>
                         <div className="col-auto">
-                            <button type="submit" className="btn btn-outline-primary mb-3">Add new task</button>
+                            <button type="submit" className="btn btn-outline-primary mb-3" disabled={this.state.isNewTaskButtonDisabled}>Add new task</button>
                         </div>
                     </form>
                 </div>
 
                 <ul className="list-group list-group-flush">
                     {this.state.tasksList.map(function (item) {
-                        return <TodoElement value={item.body} key={item.id}/>
-                    })}
+                        return <TodoElement value={item.body} key={item.id} taskId={item.id} onElementDelete={this.deleteTask}/>
+                    }, this)}
                 </ul>
             </div>
         )

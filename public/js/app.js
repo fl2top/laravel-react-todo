@@ -65966,28 +65966,27 @@ var TodoElement = /*#__PURE__*/function (_React$Component) {
   var _super = _createSuper(TodoElement);
 
   function TodoElement(props) {
+    var _this;
+
     _classCallCheck(this, TodoElement);
 
-    return _super.call(this, props);
+    _this = _super.call(this, props);
+    _this.handleDelete = _this.handleDelete.bind(_assertThisInitialized(_this));
+    return _this;
   }
 
   _createClass(TodoElement, [{
-    key: "editTask",
-    value: function editTask(clickEvent) {
-      var editButton = clickEvent.target;
-      var currentListElement = editButton.parentNode;
-      var readOnlyValue = currentListElement.querySelector('.read-only-value');
-
-      if (readOnlyValue.style.display === 'none') {
-        return true;
-      }
-
-      readOnlyValue.style.display = 'none';
-      editButton.style.display = 'none';
-      var formElement = document.createElement('div');
-      formElement.innerHTML = '<form class="row" onSubmit={this.updateTasj}>\n' + '                        <div class="col-auto">\n' + '                            <input type="text" class="form-control" onChange={this.updateNewTaskValue}/>\n' + '                        </div>\n' + '                        <div class="col-auto">\n' + '                            <button type="submit" class="btn btn-outline-primary mb-3">Save changes</button>\n' + '                        </div>\n' + '                    </form>';
-      currentListElement.insertAdjacentElement('afterbegin', formElement);
+    key: "handleDelete",
+    value: function handleDelete() {
+      this.props.onElementDelete(this.props.taskId);
     }
+    /**
+     * TODO Use 2 components here
+     * The first one - read only text plus edit button
+     * The second one - Form for changes
+     * @returns {*}
+     */
+
   }, {
     key: "render",
     value: function render() {
@@ -66000,6 +65999,7 @@ var TodoElement = /*#__PURE__*/function (_React$Component) {
         type: "button",
         className: "btn bi-pencil"
       }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("button", {
+        onClick: this.handleDelete,
         type: "button",
         className: "close",
         "aria-label": "Close"
@@ -66066,10 +66066,12 @@ var TodoList = /*#__PURE__*/function (_React$Component) {
     _this = _super.call(this, props);
     _this.state = {
       newTaskValue: '',
-      tasksList: []
+      tasksList: [],
+      isNewTaskButtonDisabled: false
     };
     _this.updateNewTaskValue = _this.updateNewTaskValue.bind(_assertThisInitialized(_this));
     _this.addNewTask = _this.addNewTask.bind(_assertThisInitialized(_this));
+    _this.deleteTask = _this.deleteTask.bind(_assertThisInitialized(_this));
     return _this;
   }
 
@@ -66086,22 +66088,47 @@ var TodoList = /*#__PURE__*/function (_React$Component) {
       var _this2 = this;
 
       event.preventDefault();
-      window.axios.post('/api/create', {
+      this.setState({
+        isNewTaskButtonDisabled: true
+      });
+      window.axios.post('/api/tasks/create', {
         'body': this.state.newTaskValue
       }).then(function (response) {
         if (response.status === 200 && response.data.body) {
-          alert('Record successfully created!');
-
           _this2.setState({
             newTaskValue: ''
           });
 
-          document.getElementById('new-task-text-field').value = '';
           var taskList = _this2.state.tasksList;
           taskList.push(response.data);
 
           _this2.setState({
             tasksList: taskList
+          });
+        }
+      })["catch"](function (error) {
+        if (error.response.data && error.response.data.errors && error.response.data.message) {
+          alert(error.response.data.message + ' ' + error.response.data.errors.body.join(','));
+        }
+      })["finally"](function () {
+        _this2.setState({
+          isNewTaskButtonDisabled: false
+        });
+      });
+    }
+  }, {
+    key: "deleteTask",
+    value: function deleteTask(taskId) {
+      var _this3 = this;
+
+      window.axios["delete"]('/api/tasks/delete/' + taskId).then(function (response) {
+        if (response.status === 200 && response.data.id) {
+          var filteredTasks = _this3.state.tasksList.filter(function (item) {
+            return item.id !== response.data.id;
+          });
+
+          _this3.setState({
+            tasksList: filteredTasks
           });
         }
       })["catch"](function (error) {
@@ -66118,10 +66145,10 @@ var TodoList = /*#__PURE__*/function (_React$Component) {
   }, {
     key: "fetchAllTasks",
     value: function fetchAllTasks() {
-      var _this3 = this;
+      var _this4 = this;
 
-      window.axios.get('/api/all').then(function (res) {
-        _this3.setState({
+      window.axios.get('/api/tasks/all').then(function (res) {
+        _this4.setState({
           tasksList: res.data
         });
       });
@@ -66142,21 +66169,25 @@ var TodoList = /*#__PURE__*/function (_React$Component) {
         type: "text",
         className: "form-control",
         onChange: this.updateNewTaskValue,
+        value: this.state.newTaskValue,
         id: "new-task-text-field",
         placeholder: "New task"
       })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "col-auto"
       }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("button", {
         type: "submit",
-        className: "btn btn-outline-primary mb-3"
+        className: "btn btn-outline-primary mb-3",
+        disabled: this.state.isNewTaskButtonDisabled
       }, "Add new task")))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("ul", {
         className: "list-group list-group-flush"
       }, this.state.tasksList.map(function (item) {
         return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_TodoElement__WEBPACK_IMPORTED_MODULE_1__["default"], {
           value: item.body,
-          key: item.id
+          key: item.id,
+          taskId: item.id,
+          onElementDelete: this.deleteTask
         });
-      })));
+      }, this)));
     }
   }]);
 

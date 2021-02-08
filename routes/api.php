@@ -18,10 +18,10 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::group(['middleware' => ['auth:api']], function () {
+Route::group(['prefix' => 'tasks', 'middleware' => ['auth:api']], function () {
     Route::get('all', [\App\Http\Controllers\TaskController::class, 'index']);
     Route::post('create', [\App\Http\Controllers\TaskController::class, 'store']);
     Route::put('update', [\App\Http\Controllers\TaskController::class, 'update']);
-    Route::delete('delete', [\App\Http\Controllers\TaskController::class, 'destroy']);
+    Route::delete('delete/{id}', [\App\Http\Controllers\TaskController::class, 'destroy']);
 });
 
