@@ -22,7 +22,7 @@ try {
 window.axios = require('axios');
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-window.axios.defaults.headers.common['Authorization'] = 'Bearer 9cce75f5-3ed2-4895-8ab0-f8e77eb29a5c';
+window.axios.defaults.headers.common['Authorization'] = 'Bearer ' + process.env.MIX_API_TOKEN;
 window.axios.defaults.headers.common['Accept'] = 'application/json';
 
 /**
