@@ -28,9 +28,14 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
+        // TODO create FormRequest for validation with an appropriate fields
         $request->validate(['body' => 'required']);
 
-        return new Response(Tasks::create($request->body, $request->body, Auth::id()));
+        return new Response(Tasks::create([
+            'body' => $request->body,
+            'title' => $request->body,
+            'user_id' => Auth::id(),
+        ]));
     }
 
     /**
